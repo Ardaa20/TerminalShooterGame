@@ -1,6 +1,6 @@
 # Derleyici ve bayraklar
 CC = gcc
-CFLAGS = -Wall -Wextra
+CFLAGS = -Wall -Wextra 
 
 # Kütüphaneler: -lncurses (ncurses için), -lm (matematik işlemleri için)
 LDLIBS = -lncurses -lm
