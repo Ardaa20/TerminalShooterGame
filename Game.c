@@ -107,7 +107,20 @@ int main(){
         player.plane.y = oldPlaneX * sin(ROTSPEED) + player.plane.y * cos(ROTSPEED);
     }
     if (key == 'w') {
-      player.position.x+=PLAYERSPEED;
+      player.position.x+=PLAYERSPEED * player.dir.x;
+      player.position.y+=PLAYERSPEED * player.dir.y;
+    }
+    if (key == 's') {
+      player.position.x-=PLAYERSPEED * player.dir.x;
+      player.position.y-=PLAYERSPEED * player.dir.y;
+    }
+    if (key == 'a'){
+      player.position.x+=PLAYERSPEED * player.dir.y;
+      player.position.y-=PLAYERSPEED * player.dir.x;
+    }
+    if (key == 'd'){
+      player.position.x-=PLAYERSPEED * player.dir.y;
+      player.position.y+=PLAYERSPEED * player.dir.x;
     }
     if (key == 'q') {  // 'q' tuşuna basınca çık
         gameRunning = 0; 
