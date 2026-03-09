@@ -75,7 +75,7 @@ int main(){
   player.plane.x=0;
   player.plane.y=PLANELENGTH;
   player.position.x=1.5;
-  player.position.y=4.5;
+  player.position.y=1.5;
   // burda bir mantik hatirlatmasi karakter aslinda map[y][x] icinde hareket edecek, neden boyle cunki normal matematikte 
   // x yatay y dikey eksendir fakat arraylerde tam tersi ve biz obur turlu yaparsak isin icinden cikamayiz butun mat hesaplamalarinda sunda bunda
 
@@ -85,31 +85,42 @@ int main(){
   nodelay(stdscr, TRUE); // getch() fonksiyonu tuş beklemesin, oyunu dondurmasın
   keypad(stdscr, TRUE);  // Yön tuşları (oklar) çalışabilsin
   curs_set(0);          // Yanıp sönen terminal imlecini (cursor) gizle
+  mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
   printf("\033[?1003h\n");
   fflush(stdout);
-  mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
+
   //main game loop 
   rayCasting ray;
   int lastMouseX=-1;
   int gameRunning = 1;
+  VectorDouble nextPlayerPosition;
+  nextPlayerPosition.x=player.position.x;
+  nextPlayerPosition.y=player.position.y;
   while(gameRunning) {
-    int key = getch();
+    int key;
+    while ((key = getch()) != ERR) {
     if (key == 'w') {
-      player.position.x+=PLAYERSPEED * player.dir.x;
-      player.position.y+=PLAYERSPEED * player.dir.y;
+      nextPlayerPosition.x+=PLAYERSPEED * player.dir.x;
+      nextPlayerPosition.y+=PLAYERSPEED * player.dir.y;
     }
     if (key == 's') {
-      player.position.x-=PLAYERSPEED * player.dir.x;
-      player.position.y-=PLAYERSPEED * player.dir.y;
+      nextPlayerPosition.x-=PLAYERSPEED * player.dir.x;
+      nextPlayerPosition.y-=PLAYERSPEED * player.dir.y;
     }
     if (key == 'a'){
-      player.position.x+=PLAYERSPEED * player.dir.y;
-      player.position.y-=PLAYERSPEED * player.dir.x;
+      nextPlayerPosition.x+=PLAYERSPEED * player.dir.y;
+      nextPlayerPosition.y-=PLAYERSPEED * player.dir.x;
     }
     if (key == 'd'){
-      player.position.x-=PLAYERSPEED * player.dir.y;
-      player.position.y+=PLAYERSPEED * player.dir.x;
+      nextPlayerPosition.x-=PLAYERSPEED * player.dir.y;
+      nextPlayerPosition.y+=PLAYERSPEED * player.dir.x;
     }
+    if (map[(int)nextPlayerPosition.y][(int) nextPlayerPosition.x]==0){
+      player.position.x=nextPlayerPosition.x;
+      player.position.y=nextPlayerPosition.y;
+    }
+    nextPlayerPosition.x=player.position.x;
+    nextPlayerPosition.y=player.position.y;
     if (key == 'q') {  // 'q' tuşuna basınca çık
         gameRunning = 0; 
     }
@@ -131,6 +142,7 @@ int main(){
         }
         lastMouseX = event.x; // Konumu güncelle
       }
+    }
     }
     clear();
     for(int x = 0; x<WIDTH ; x++){
@@ -205,8 +217,13 @@ void print(double wallDist, int side, int whichCol){
   if(startPoint<0) startPoint = 0;
   if(endPoint>=HEIGHT) endPoint = HEIGHT-1;
   char drawWith;
-  if(side==0) drawWith = '#';
-  else        drawWith = '@';
+  char *shades="@#%*+=-:. ";
+  int shadeIndex = (int) wallDist * 1.5;
+  if(shadeIndex>9) shadeIndex=8;
+  drawWith = *(shades + shadeIndex);
+  if(side ==1 && shadeIndex<9){
+    drawWith = *(shades + shadeIndex + 1);
+  };
   /* tavan istersen 
   int i = 0;
   while(i<startPoint){
@@ -221,12 +238,10 @@ void print(double wallDist, int side, int whichCol){
   /*yer istersen
   endPoint++;
   while(endPoint<=HEIGHT-1){
-     mvaddch(endPoint,whichCol,'-');
+     mvaddch(endPoint,whichCol,'~');
      endPoint++;
   }
   */
 };
-
-
 
 
