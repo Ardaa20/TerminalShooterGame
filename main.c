@@ -85,27 +85,15 @@ int main(){
   nodelay(stdscr, TRUE); // getch() fonksiyonu tuş beklemesin, oyunu dondurmasın
   keypad(stdscr, TRUE);  // Yön tuşları (oklar) çalışabilsin
   curs_set(0);          // Yanıp sönen terminal imlecini (cursor) gizle
+  printf("\033[?1003h\n");
+  fflush(stdout);
+  mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
   //main game loop 
   rayCasting ray;
+  int lastMouseX=-1;
   int gameRunning = 1;
   while(gameRunning) {
     int key = getch();
-    if (key == KEY_LEFT) {
-        double oldDirX = player.dir.x;
-        player.dir.x = player.dir.x * cos(-ROTSPEED) - player.dir.y * sin(-ROTSPEED);
-        player.dir.y = oldDirX * sin(-ROTSPEED) + player.dir.y * cos(-ROTSPEED);
-        double oldPlaneX = player.plane.x;
-        player.plane.x = player.plane.x * cos(-ROTSPEED) - player.plane.y * sin(-ROTSPEED);
-        player.plane.y = oldPlaneX * sin(-ROTSPEED) + player.plane.y * cos(-ROTSPEED);
-    }
-    if (key == KEY_RIGHT) {
-        double oldDirX = player.dir.x;
-        player.dir.x = player.dir.x * cos(ROTSPEED) - player.dir.y * sin(ROTSPEED);
-        player.dir.y = oldDirX * sin(ROTSPEED) + player.dir.y * cos(ROTSPEED);
-        double oldPlaneX = player.plane.x;
-        player.plane.x = player.plane.x * cos(ROTSPEED) - player.plane.y * sin(ROTSPEED);
-        player.plane.y = oldPlaneX * sin(ROTSPEED) + player.plane.y * cos(ROTSPEED);
-    }
     if (key == 'w') {
       player.position.x+=PLAYERSPEED * player.dir.x;
       player.position.y+=PLAYERSPEED * player.dir.y;
@@ -124,6 +112,25 @@ int main(){
     }
     if (key == 'q') {  // 'q' tuşuna basınca çık
         gameRunning = 0; 
+    }
+    if (key == KEY_MOUSE)
+    {
+      MEVENT event;
+      if (getmouse(&event) == OK)
+      {
+        if (lastMouseX == -1) lastMouseX = event.x;          
+          int deltaX = event.x - lastMouseX; 
+          if (deltaX != 0) {
+            double rotSpeed = deltaX * ROTSPEED;
+            double oldDirX = player.dir.x;
+            player.dir.x = player.dir.x * cos(rotSpeed) - player.dir.y * sin(rotSpeed);
+            player.dir.y = oldDirX * sin(rotSpeed) + player.dir.y * cos(rotSpeed);
+            double oldPlaneX = player.plane.x;
+            player.plane.x = player.plane.x * cos(rotSpeed) - player.plane.y * sin(rotSpeed);
+            player.plane.y = oldPlaneX * sin(rotSpeed) + player.plane.y * cos(rotSpeed);
+        }
+        lastMouseX = event.x; // Konumu güncelle
+      }
     }
     clear();
     for(int x = 0; x<WIDTH ; x++){
@@ -165,6 +172,8 @@ int main(){
     napms(16);
   }
   //finish the game
+  printf("\033[?1003l\n"); // Fare izlemeyi KAPAT (Sonundaki harf küçük L)
+  fflush(stdout);
   endwin();
   return 0;
 }
@@ -198,9 +207,8 @@ void print(double wallDist, int side, int whichCol){
   char drawWith;
   if(side==0) drawWith = '#';
   else        drawWith = '@';
-  int i = 0;
-  
   /* tavan istersen 
+  int i = 0;
   while(i<startPoint){
     mvaddch(i,whichCol,'_'); 
     i++;  
