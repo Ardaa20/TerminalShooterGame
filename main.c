@@ -3,6 +3,7 @@
 #include <math.h> //abs fonksiyonu icin yaptik(c de fabs var bu kutuphane icinde floatlari felanda duzgun yapiyor)
 #include <unistd.h>
 #include <time.h>
+#include <stdlib.h>
 #define MapSize 20
 #define HEIGHT 45
 #define WIDTH 190
@@ -10,10 +11,16 @@
 #define PLANELENGTH 1.0 // fov acisini degistirmek icin bunu degistirebiliriz, bunun boyutuna gore fov acisi degisecek
 #define ROTSPEED 0.07
 #define PLAYERSPEED 0.05
-
-#define FPS 200
+#define MAXWEAPON 10
+#define FPS 60
 #define FRAME_TIME_US (1000000 / FPS) // Mikro saniye cinsinden hedef süre
 // STRUCTS
+typedef struct {
+    int width;
+    int height;
+    char **ascii_art; 
+} Weapon;
+
 typedef struct
 {
   float x;
@@ -52,7 +59,13 @@ typedef struct
 // function
 void DDA(rayCasting *ray);
 void print(double wallDist, int side, int whichCol);
+void downloadWeapon();
+void cleanMemory();
+void printWeapon(int weapon);
+void shoot();
 
+Weapon weapons[MAXWEAPON];
+int weaponCount = 0;
 int map[MapSize][MapSize] = {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
     {1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
@@ -84,9 +97,10 @@ int main()
   player.plane.y = PLANELENGTH;
   player.position.x = 1.5;
   player.position.y = 4.5;
+  int currentWeapon=2;
   // burda bir mantik hatirlatmasi karakter aslinda map[y][x] icinde hareket edecek, neden boyle cunki normal matematikte
   // x yatay y dikey eksendir fakat arraylerde tam tersi ve biz obur turlu yaparsak isin icinden cikamayiz butun mat hesaplamalarinda sunda bunda
-
+  downloadWeapon();
   initscr();
   cbreak();
   noecho();              // Klavyede basılan tuşları terminale yazı olarak yazma
@@ -210,6 +224,7 @@ int main()
         ray.perpWallDist = (ray.sideDist.y - ray.deltaDist.y);
       print(ray.perpWallDist, ray.side, x);
     }
+    printWeapon(currentWeapon);
     wnoutrefresh(stdscr);
     doupdate();
     // 4. ZAMANLAMA (Timing)
@@ -231,6 +246,7 @@ int main()
   printf("\033[?1003l\n"); // Fare izlemeyi KAPAT (Sonundaki harf küçük L)
   fflush(stdout);
   endwin();
+  cleanMemory();
   return 0;
 }
 
@@ -267,7 +283,7 @@ void print(double wallDist, int side, int whichCol)
     endPoint = HEIGHT - 1;
   char drawWith;
   char *shades = "@#%*+=-:. ";
-  int shadeIndex = (int)wallDist * 1.5;
+  int shadeIndex = (int)wallDist * 1;
   if (shadeIndex > 9)
     shadeIndex = 8;
   drawWith = *(shades + shadeIndex);
@@ -295,3 +311,66 @@ void print(double wallDist, int side, int whichCol)
   }
   */
 };
+
+void downloadWeapon() {
+    FILE *file = fopen("./weapon_image/weapon1.txt", "r");
+    if (file == NULL) {
+        printf("ERROR: FILE NOT FOUND!\n");
+        return;
+    }
+    int width, height;
+    while (weaponCount < MAXWEAPON && fscanf(file, "w:%d h:%d", &width, &height) == 2) {
+        int ch;
+        while ((ch = fgetc(file)) != '\n' && ch != EOF);
+
+        weapons[weaponCount].width = width;
+        weapons[weaponCount].height = height;
+        weapons[weaponCount].ascii_art = (char**) malloc(height * sizeof(char *));
+        
+        for (int i = 0; i < height; i++) {
+            weapons[weaponCount].ascii_art[i] = (char*) malloc(width * sizeof(char));
+            int j = 0;
+            int current_char;
+            while ((current_char = fgetc(file)) != '\n' && current_char != EOF) {
+                if (current_char != '\r' && j < width) {
+                    weapons[weaponCount].ascii_art[i][j] = current_char;
+                    j++;
+                }
+            }
+            while (j < width) {
+                weapons[weaponCount].ascii_art[i][j] = ' ';
+                j++;
+            }
+        }
+        weaponCount++;
+    }
+    fclose(file);
+}
+
+void cleanMemory() {
+    for (int s = 0; s < weaponCount; s++) {
+        int h = weapons[s].height;
+        for (int i = 0; i < h; i++) {
+            free(weapons[s].ascii_art[i]);
+        }
+        free(weapons[s].ascii_art);
+    }
+}
+
+void printWeapon(int weapon) {
+    if (weaponCount == 0) return;
+
+    int w = weapons[weapon].width;
+    int h = weapons[weapon].height;
+
+    int widthStart = (WIDTH / 2) - (w / 2);
+    int heightStart = HEIGHT - h;
+
+    for(int i = 0; i < h; i++) {
+        for(int j = 0; j < w; j++) {
+            char c = weapons[weapon].ascii_art[i][j];
+            if(c!=' ') mvaddch(heightStart + i, widthStart + j, c);
+        }
+    }
+}
+
