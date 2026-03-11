@@ -93,58 +93,82 @@ int main()
   nodelay(stdscr, TRUE); // getch() fonksiyonu tuş beklemesin, oyunu dondurmasın
   keypad(stdscr, TRUE);  // Yön tuşları (oklar) çalışabilsin
   curs_set(0);           // Yanıp sönen terminal imlecini (cursor) gizle
+  mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
+  printf("\033[?1003h\n");
+  fflush(stdout);
+
+  // 1. GİRİŞ (Input)
+  // Kullanıcıdan gelen girdileri oku (klavye, fare vb.)
   // main game loop
   rayCasting ray;
-  bool gameRunning = true;
+  int lastMouseX = -1;
+  int gameRunning = 1;
+  VectorDouble nextPlayerPosition;
+  nextPlayerPosition.x = player.position.x;
+  nextPlayerPosition.y = player.position.y;
   struct timespec start, end;
   long diff_ms;
   while (gameRunning)
   {
+
     // 1. GİRİŞ (Input)
     // Kullanıcıdan gelen girdileri oku (klavye, fare vb.)
     clock_gettime(CLOCK_MONOTONIC, &start);
-    int key = getch();
-    if (key == KEY_LEFT)
+    int key;
+    while ((key = getch()) != ERR)
     {
-      double oldDirX = player.dir.x;
-      player.dir.x = player.dir.x * cos(-ROTSPEED) - player.dir.y * sin(-ROTSPEED);
-      player.dir.y = oldDirX * sin(-ROTSPEED) + player.dir.y * cos(-ROTSPEED);
-      double oldPlaneX = player.plane.x;
-      player.plane.x = player.plane.x * cos(-ROTSPEED) - player.plane.y * sin(-ROTSPEED);
-      player.plane.y = oldPlaneX * sin(-ROTSPEED) + player.plane.y * cos(-ROTSPEED);
-    }
-    if (key == KEY_RIGHT)
-    {
-      double oldDirX = player.dir.x;
-      player.dir.x = player.dir.x * cos(ROTSPEED) - player.dir.y * sin(ROTSPEED);
-      player.dir.y = oldDirX * sin(ROTSPEED) + player.dir.y * cos(ROTSPEED);
-      double oldPlaneX = player.plane.x;
-      player.plane.x = player.plane.x * cos(ROTSPEED) - player.plane.y * sin(ROTSPEED);
-      player.plane.y = oldPlaneX * sin(ROTSPEED) + player.plane.y * cos(ROTSPEED);
-    }
-    if (key == 'w')
-    {
-      player.position.x += PLAYERSPEED * player.dir.x;
-      player.position.y += PLAYERSPEED * player.dir.y;
-    }
-    if (key == 's')
-    {
-      player.position.x -= PLAYERSPEED * player.dir.x;
-      player.position.y -= PLAYERSPEED * player.dir.y;
-    }
-    if (key == 'a')
-    {
-      player.position.x += PLAYERSPEED * player.dir.y;
-      player.position.y -= PLAYERSPEED * player.dir.x;
-    }
-    if (key == 'd')
-    {
-      player.position.x -= PLAYERSPEED * player.dir.y;
-      player.position.y += PLAYERSPEED * player.dir.x;
-    }
-    if (key == 'q')
-    { // 'q' tuşuna basınca çık
-      gameRunning = false;
+      if (key == 'w')
+      {
+        nextPlayerPosition.x += PLAYERSPEED * player.dir.x;
+        nextPlayerPosition.y += PLAYERSPEED * player.dir.y;
+      }
+      if (key == 's')
+      {
+        nextPlayerPosition.x -= PLAYERSPEED * player.dir.x;
+        nextPlayerPosition.y -= PLAYERSPEED * player.dir.y;
+      }
+      if (key == 'a')
+      {
+        nextPlayerPosition.x += PLAYERSPEED * player.dir.y;
+        nextPlayerPosition.y -= PLAYERSPEED * player.dir.x;
+      }
+      if (key == 'd')
+      {
+        nextPlayerPosition.x -= PLAYERSPEED * player.dir.y;
+        nextPlayerPosition.y += PLAYERSPEED * player.dir.x;
+      }
+      if (map[(int)nextPlayerPosition.y][(int)nextPlayerPosition.x] == 0)
+      {
+        player.position.x = nextPlayerPosition.x;
+        player.position.y = nextPlayerPosition.y;
+      }
+      nextPlayerPosition.x = player.position.x;
+      nextPlayerPosition.y = player.position.y;
+      if (key == 'q')
+      { // 'q' tuşuna basınca çık
+        gameRunning = 0;
+      }
+      if (key == KEY_MOUSE)
+      {
+        MEVENT event;
+        if (getmouse(&event) == OK)
+        {
+          if (lastMouseX == -1)
+            lastMouseX = event.x;
+          int deltaX = event.x - lastMouseX;
+          if (deltaX != 0)
+          {
+            double rotSpeed = deltaX * ROTSPEED;
+            double oldDirX = player.dir.x;
+            player.dir.x = player.dir.x * cos(rotSpeed) - player.dir.y * sin(rotSpeed);
+            player.dir.y = oldDirX * sin(rotSpeed) + player.dir.y * cos(rotSpeed);
+            double oldPlaneX = player.plane.x;
+            player.plane.x = player.plane.x * cos(rotSpeed) - player.plane.y * sin(rotSpeed);
+            player.plane.y = oldPlaneX * sin(rotSpeed) + player.plane.y * cos(rotSpeed);
+          }
+          lastMouseX = event.x; // Konumu güncelle
+        }
+      }
     }
     // 2. GÜNCELLEME (Update)
     // Oyun mantığını burada işlet (taşların hareketi, portal kontrolü vb.)
@@ -204,6 +228,8 @@ int main()
     }
   }
   // finish the game
+  printf("\033[?1003l\n"); // Fare izlemeyi KAPAT (Sonundaki harf küçük L)
+  fflush(stdout);
   endwin();
   return 0;
 }
@@ -240,13 +266,17 @@ void print(double wallDist, int side, int whichCol)
   if (endPoint >= HEIGHT)
     endPoint = HEIGHT - 1;
   char drawWith;
-  if (side == 0)
-    drawWith = '#';
-  else
-    drawWith = '@';
-  int i = 0;
-
+  char *shades = "@#%*+=-:. ";
+  int shadeIndex = (int)wallDist * 1.5;
+  if (shadeIndex > 9)
+    shadeIndex = 8;
+  drawWith = *(shades + shadeIndex);
+  if (side == 1 && shadeIndex < 9)
+  {
+    drawWith = *(shades + shadeIndex + 1);
+  };
   /* tavan istersen
+  int i = 0;
   while(i<startPoint){
     mvaddch(i,whichCol,'_');
     i++;
@@ -260,7 +290,7 @@ void print(double wallDist, int side, int whichCol)
   /*yer istersen
   endPoint++;
   while(endPoint<=HEIGHT-1){
-     mvaddch(endPoint,whichCol,'-');
+     mvaddch(endPoint,whichCol,'~');
      endPoint++;
   }
   */
