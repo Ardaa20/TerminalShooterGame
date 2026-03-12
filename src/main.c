@@ -3,36 +3,16 @@
 #include <math.h> //abs fonksiyonu icin yaptik(c de fabs var bu kutuphane icinde floatlari felanda duzgun yapiyor)
 #include <unistd.h>
 #include <time.h>
-#define MapSize 20
-#define HEIGHT 45
-#define WIDTH 190
+#include "player.h"
+#include "vector.h"
+#include "map.h"
+
 #define DIRLENGTH 1.0   // sakin degistirme bu degeri buna guvenerek matematiksel hesaplamalar yapiliyor(1 olmasina gore)
 #define PLANELENGTH 1.0 // fov acisini degistirmek icin bunu degistirebiliriz, bunun boyutuna gore fov acisi degisecek
-#define ROTSPEED 0.07
-#define PLAYERSPEED 0.05
 
 #define FPS 200
 #define FRAME_TIME_US (1000000 / FPS) // Mikro saniye cinsinden hedef süre
 // STRUCTS
-typedef struct
-{
-  float x;
-  float y;
-} Vector;
-
-typedef struct
-{
-  double x;
-  double y;
-} VectorDouble;
-
-typedef struct
-{
-  Vector position;
-  Vector moveSpeed;
-  Vector dir;
-  Vector plane;
-} character;
 
 typedef struct
 {
@@ -52,29 +32,6 @@ typedef struct
 // function
 void DDA(rayCasting *ray);
 void print(double wallDist, int side, int whichCol);
-
-int map[MapSize][MapSize] = {
-    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1},
-    {1, 1, 1, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 1, 1, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1},
-    {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}};
-
 int main()
 {
   character player;
@@ -117,33 +74,7 @@ int main()
     int key;
     while ((key = getch()) != ERR)
     {
-      if (key == 'w')
-      {
-        nextPlayerPosition.x += PLAYERSPEED * player.dir.x;
-        nextPlayerPosition.y += PLAYERSPEED * player.dir.y;
-      }
-      if (key == 's')
-      {
-        nextPlayerPosition.x -= PLAYERSPEED * player.dir.x;
-        nextPlayerPosition.y -= PLAYERSPEED * player.dir.y;
-      }
-      if (key == 'a')
-      {
-        nextPlayerPosition.x += PLAYERSPEED * player.dir.y;
-        nextPlayerPosition.y -= PLAYERSPEED * player.dir.x;
-      }
-      if (key == 'd')
-      {
-        nextPlayerPosition.x -= PLAYERSPEED * player.dir.y;
-        nextPlayerPosition.y += PLAYERSPEED * player.dir.x;
-      }
-      if (map[(int)nextPlayerPosition.y][(int)nextPlayerPosition.x] == 0)
-      {
-        player.position.x = nextPlayerPosition.x;
-        player.position.y = nextPlayerPosition.y;
-      }
-      nextPlayerPosition.x = player.position.x;
-      nextPlayerPosition.y = player.position.y;
+      player.position = movePlayer(&player, key);
       if (key == 'q')
       { // 'q' tuşuna basınca çık
         gameRunning = 0;
@@ -173,6 +104,7 @@ int main()
     // 2. GÜNCELLEME (Update)
     // Oyun mantığını burada işlet (taşların hareketi, portal kontrolü vb.)
     werase(stdscr);
+
     for (int x = 0; x < WIDTH; x++)
     {
       double cameraX = 2 * x / (double)WIDTH - 1; // x-coordinate in camera space
@@ -208,7 +140,8 @@ int main()
         ray.perpWallDist = (ray.sideDist.x - ray.deltaDist.x);
       else
         ray.perpWallDist = (ray.sideDist.y - ray.deltaDist.y);
-      print(ray.perpWallDist, ray.side, x);
+
+      printMap(ray.perpWallDist, ray.side, x);
     }
     wnoutrefresh(stdscr);
     doupdate();
@@ -254,44 +187,4 @@ void DDA(rayCasting *ray)
     if (map[ray->mapY][ray->mapX] > 0)
       ray->hit = 1;
   }
-};
-
-void print(double wallDist, int side, int whichCol)
-{
-  int height = (int)(HEIGHT / wallDist);
-  int startPoint = HEIGHT / 2 - height / 2;
-  int endPoint = HEIGHT / 2 + height / 2;
-  if (startPoint < 0)
-    startPoint = 0;
-  if (endPoint >= HEIGHT)
-    endPoint = HEIGHT - 1;
-  char drawWith;
-  char *shades = "@#%*+=-:. ";
-  int shadeIndex = (int)wallDist * 1.5;
-  if (shadeIndex > 9)
-    shadeIndex = 8;
-  drawWith = *(shades + shadeIndex);
-  if (side == 1 && shadeIndex < 9)
-  {
-    drawWith = *(shades + shadeIndex + 1);
-  };
-  /* tavan istersen
-  int i = 0;
-  while(i<startPoint){
-    mvaddch(i,whichCol,'_');
-    i++;
-  }
-  */
-  while (startPoint <= endPoint)
-  {
-    mvaddch(startPoint, whichCol, drawWith);
-    startPoint++;
-  }
-  /*yer istersen
-  endPoint++;
-  while(endPoint<=HEIGHT-1){
-     mvaddch(endPoint,whichCol,'~');
-     endPoint++;
-  }
-  */
 };
