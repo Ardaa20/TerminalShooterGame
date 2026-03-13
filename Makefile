@@ -1,13 +1,19 @@
-# Derleyici ve bayraklar
+# Derleyici ve bayraklar (-Iinclude kısmı çok önemli, .h dosyalarını bulmasını sağlar)
 CC = gcc
-CFLAGS = -Wall -Wextra 
+CFLAGS = -Wall -Wextra -Iinclude
 
-# Kütüphaneler: -lncurses (ncurses için), -lm (matematik işlemleri için)
+# Kütüphaneler: -lncurses (ncurses için), -lm (matematik işlemleri için) 
 LDLIBS = -lncurses -lm
 
-# Çıktı klasörü ve dosya adı
+# Klasörler (Tanımlarken sonu DIR ile bitsin)
 BUILD_DIR = build
-TARGET = $(BUILD_DIR)/doom_game
+SRC_DIR = src
+
+# Çıktı dosya adı
+TARGET = $(BUILD_DIR)/game_demo
+
+# src klasörünün içindeki TÜM .c dosyalarını bul (main.c dahil)
+SRCS = $(wildcard $(SRC_DIR)/*.c)
 
 # Varsayılan kural
 all: $(BUILD_DIR) $(TARGET)
@@ -16,9 +22,9 @@ all: $(BUILD_DIR) $(TARGET)
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-# main.c'yi derle ve kütüphaneleri bağla
-$(TARGET): main.c
-	$(CC) $(CFLAGS) main.c -o $(TARGET) $(LDLIBS)
+# Tüm .c dosyalarını derle ve kütüphaneleri bağla (main.c yi ayrı yazamaya gerek yok ana int main() onda olduğu için onu Başlangıc olarak alıyor)
+$(TARGET): $(SRCS)
+	$(CC) $(CFLAGS) $(SRCS) -o $(TARGET) $(LDLIBS)
 
 # Temizlik kuralı
 clean:
