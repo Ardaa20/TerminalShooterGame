@@ -3,6 +3,7 @@
 #define PLAYER_H
 
 #include "vector.h"
+#include <math.h>
 
 #define ROTSPEED 0.07
 #define PLAYERSPEED 0.05
@@ -15,6 +16,7 @@ typedef struct
     Vector plane;
 } character;
 
-Vector movePlayer(character *player, int key);
+void movePlayer(character *player, int key);
+void rotatePlayer(character *player, int deltaX);
 
 #endif

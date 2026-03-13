@@ -7,6 +7,7 @@
 #define MAP_WIDTH 20
 #define MAP_HEIGHT 20
 #include "vector.h"
+#include <ncurses.h>
 
 extern int map[MAP_HEIGHT][MAP_WIDTH];
 

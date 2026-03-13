@@ -2,7 +2,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -Iinclude
 
-# Kütüphaneler: -lncurses (ncurses için), -lm (matematik işlemleri için)
+# Kütüphaneler: -lncurses (ncurses için), -lm (matematik işlemleri için) 
 LDLIBS = -lncurses -lm
 
 # Klasörler (Tanımlarken sonu DIR ile bitsin)

@@ -31,7 +31,6 @@ typedef struct
 
 // function
 void DDA(rayCasting *ray);
-void print(double wallDist, int side, int whichCol);
 int main()
 {
   character player;
@@ -51,6 +50,7 @@ int main()
   keypad(stdscr, TRUE);  // Yön tuşları (oklar) çalışabilsin
   curs_set(0);           // Yanıp sönen terminal imlecini (cursor) gizle
   mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
+  printf("\033[?1000l");
   printf("\033[?1003h\n");
   fflush(stdout);
 
@@ -60,9 +60,6 @@ int main()
   rayCasting ray;
   int lastMouseX = -1;
   int gameRunning = 1;
-  VectorDouble nextPlayerPosition;
-  nextPlayerPosition.x = player.position.x;
-  nextPlayerPosition.y = player.position.y;
   struct timespec start, end;
   long diff_ms;
   while (gameRunning)
@@ -74,11 +71,15 @@ int main()
     int key;
     while ((key = getch()) != ERR)
     {
-      player.position = movePlayer(&player, key);
+
+      movePlayer(&player, key);
+
       if (key == 'q')
       { // 'q' tuşuna basınca çık
         gameRunning = 0;
       }
+
+      // Fare hareketlerini işlemek için
       if (key == KEY_MOUSE)
       {
         MEVENT event;
@@ -89,20 +90,14 @@ int main()
           int deltaX = event.x - lastMouseX;
           if (deltaX != 0)
           {
-            double rotSpeed = deltaX * ROTSPEED;
-            double oldDirX = player.dir.x;
-            player.dir.x = player.dir.x * cos(rotSpeed) - player.dir.y * sin(rotSpeed);
-            player.dir.y = oldDirX * sin(rotSpeed) + player.dir.y * cos(rotSpeed);
-            double oldPlaneX = player.plane.x;
-            player.plane.x = player.plane.x * cos(rotSpeed) - player.plane.y * sin(rotSpeed);
-            player.plane.y = oldPlaneX * sin(rotSpeed) + player.plane.y * cos(rotSpeed);
+            rotatePlayer(&player, deltaX);
           }
           lastMouseX = event.x; // Konumu güncelle
         }
       }
     }
     // 2. GÜNCELLEME (Update)
-    // Oyun mantığını burada işlet (taşların hareketi, portal kontrolü vb.)
+    // Oyun mantığını burada işlet (örneğin, karakter hareketi, çarpışma kontrolü, yapay zeka güncellemeleri vb.)
     werase(stdscr);
 
     for (int x = 0; x < WIDTH; x++)
