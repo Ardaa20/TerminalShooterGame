@@ -5,20 +5,21 @@
 #include <time.h>
 #include <stdlib.h>
 #define MapSize 20
-#define HEIGHT 45
-#define WIDTH 190
 #define DIRLENGTH 1.0   // sakin degistirme bu degeri buna guvenerek matematiksel hesaplamalar yapiliyor(1 olmasina gore)
 #define PLANELENGTH 1.0 // fov acisini degistirmek icin bunu degistirebiliriz, bunun boyutuna gore fov acisi degisecek
 #define ROTSPEED 0.07
+#define HEIGHT 45
+#define WIDTH 186
 #define PLAYERSPEED 0.05
 #define MAXWEAPON 10
 #define FPS 60
 #define FRAME_TIME_US (1000000 / FPS) // Mikro saniye cinsinden hedef süre
 // STRUCTS
 typedef struct {
-    int width;
-    int height;
-    char **ascii_art; 
+  int width;
+  int height;
+  int tip;
+  char **ascii_art; 
 } Weapon;
 
 typedef struct
@@ -61,8 +62,8 @@ void DDA(rayCasting *ray);
 void print(double wallDist, int side, int whichCol);
 void downloadWeapon();
 void cleanMemory();
-void printWeapon(int weapon);
-void shoot();
+void printWeapon(Weapon *weapon);
+void shoot(Weapon *weapon);
 
 Weapon weapons[MAXWEAPON];
 int weaponCount = 0;
@@ -101,6 +102,8 @@ int main()
   // burda bir mantik hatirlatmasi karakter aslinda map[y][x] icinde hareket edecek, neden boyle cunki normal matematikte
   // x yatay y dikey eksendir fakat arraylerde tam tersi ve biz obur turlu yaparsak isin icinden cikamayiz butun mat hesaplamalarinda sunda bunda
   downloadWeapon();
+  printf("\e[8;45;190t"); 
+  fflush(stdout);
   initscr();
   cbreak();
   noecho();              // Klavyede basılan tuşları terminale yazı olarak yazma
@@ -110,13 +113,28 @@ int main()
   mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
   printf("\033[?1003h\n");
   fflush(stdout);
-
+  while (COLS < WIDTH || LINES < HEIGHT) {
+    clear();
+    // Ekranın tam ortasına uyarı yazdırıyoruz
+    mvprintw(LINES / 2, (COLS - 45) / 2, "PLEASE INCREASE THE SCREEN SIZE!");
+    mvprintw((LINES / 2) + 1, (COLS - 45) / 2, "REQUIRED: %dx%d | PRESENT: %dx%d", WIDTH, HEIGHT, COLS, LINES);
+    mvprintw((LINES / 2) + 3, (COLS - 45) / 2, "PRESS 'q' FOR EXIT");
+    refresh();
+      
+    int key = getch();
+    if (key == 'q') {
+       endwin();
+       return 0; // Oyunu kapat
+    }
+    usleep(10000);
+  }
   // 1. GİRİŞ (Input)
   // Kullanıcıdan gelen girdileri oku (klavye, fare vb.)
   // main game loop
   rayCasting ray;
   int lastMouseX = -1;
   int gameRunning = 1;
+  int shooting = 0;
   VectorDouble nextPlayerPosition;
   nextPlayerPosition.x = player.position.x;
   nextPlayerPosition.y = player.position.y;
@@ -124,7 +142,7 @@ int main()
   long diff_ms;
   while (gameRunning)
   {
-
+    
     // 1. GİRİŞ (Input)
     // Kullanıcıdan gelen girdileri oku (klavye, fare vb.)
     clock_gettime(CLOCK_MONOTONIC, &start);
@@ -181,6 +199,10 @@ int main()
             player.plane.y = oldPlaneX * sin(rotSpeed) + player.plane.y * cos(rotSpeed);
           }
           lastMouseX = event.x; // Konumu güncelle
+          if (event.bstate & BUTTON1_PRESSED || event.bstate & BUTTON1_CLICKED)
+          {
+            shooting = 15;   
+          }
         }
       }
     }
@@ -224,7 +246,11 @@ int main()
         ray.perpWallDist = (ray.sideDist.y - ray.deltaDist.y);
       print(ray.perpWallDist, ray.side, x);
     }
-    printWeapon(currentWeapon);
+    printWeapon(&weapons[currentWeapon]);
+    if(shooting){
+      shoot(&weapons[currentWeapon]);
+      shooting--;
+    }
     wnoutrefresh(stdscr);
     doupdate();
     // 4. ZAMANLAMA (Timing)
@@ -281,6 +307,8 @@ void print(double wallDist, int side, int whichCol)
     startPoint = 0;
   if (endPoint >= HEIGHT)
     endPoint = HEIGHT - 1;
+  int offsetX = (COLS > WIDTH) ? (COLS - WIDTH) / 2 : 0;
+  int offsetY = (LINES > HEIGHT) ? (LINES - HEIGHT) / 2 : 0;
   char drawWith;
   char *shades = "@#%*+=-:. ";
   int shadeIndex = (int)wallDist * 1;
@@ -300,7 +328,7 @@ void print(double wallDist, int side, int whichCol)
   */
   while (startPoint <= endPoint)
   {
-    mvaddch(startPoint, whichCol, drawWith);
+    mvaddch(startPoint + offsetY, whichCol + offsetX, drawWith);
     startPoint++;
   }
   /*yer istersen
@@ -310,7 +338,10 @@ void print(double wallDist, int side, int whichCol)
      endPoint++;
   }
   */
+  mvaddch(HEIGHT/2,WIDTH/2+1,']');
+  mvaddch(HEIGHT/2,WIDTH/2-1,'[');
 };
+
 
 void downloadWeapon() {
     FILE *file = fopen("./weapon_image/weapon1.txt", "r");
@@ -318,13 +349,14 @@ void downloadWeapon() {
         printf("ERROR: FILE NOT FOUND!\n");
         return;
     }
-    int width, height;
-    while (weaponCount < MAXWEAPON && fscanf(file, "w:%d h:%d", &width, &height) == 2) {
+    int width, height, tip;
+    while (weaponCount < MAXWEAPON && fscanf(file, "w:%d h:%d t:%d", &width, &height, &tip) == 3) {
         int ch;
         while ((ch = fgetc(file)) != '\n' && ch != EOF);
 
         weapons[weaponCount].width = width;
         weapons[weaponCount].height = height;
+        weapons[weaponCount].tip = tip;
         weapons[weaponCount].ascii_art = (char**) malloc(height * sizeof(char *));
         
         for (int i = 0; i < height; i++) {
@@ -357,20 +389,35 @@ void cleanMemory() {
     }
 }
 
-void printWeapon(int weapon) {
+void printWeapon(Weapon *currentWeapon) {
     if (weaponCount == 0) return;
 
-    int w = weapons[weapon].width;
-    int h = weapons[weapon].height;
-
+    int w = currentWeapon->width;
+    int h = currentWeapon->height;
+    int offsetX = (COLS > WIDTH) ? (COLS - WIDTH) / 2 : 0;
+    int offsetY = (LINES > HEIGHT) ? (LINES - HEIGHT) / 2 : 0;
     int widthStart = (WIDTH / 2) - (w / 2);
     int heightStart = HEIGHT - h;
 
     for(int i = 0; i < h; i++) {
         for(int j = 0; j < w; j++) {
-            char c = weapons[weapon].ascii_art[i][j];
-            if(c!=' ') mvaddch(heightStart + i, widthStart + j, c);
+            char c = currentWeapon->ascii_art[i][j];
+            if(c!=' ') mvaddch(heightStart + i + offsetY, widthStart + j + offsetX, c);
         }
     }
 }
 
+void shoot(Weapon *currentWeapon){
+
+  int h = currentWeapon->height;
+  int t = currentWeapon->tip;
+  double wStart = WIDTH/2 - t/2;
+  int offsetX = (COLS > WIDTH) ? (COLS - WIDTH) / 2 : 0;
+  int offsetY = (LINES > HEIGHT) ? (LINES - HEIGHT) / 2 : 0;
+
+  for(double m = wStart; m < wStart + t ; m++ ){ 
+    for(int i = HEIGHT - h - 3; i < HEIGHT - h ; i++){
+      mvaddch(i + offsetY, m + offsetX, '|'); 
+    } 
+  }
+}
