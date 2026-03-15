@@ -20,6 +20,7 @@
 int main()
 {
   character player;
+  character enemy;
   player.dir.x = DIRLENGTH;
   player.dir.y = 0;
   player.plane.x = 0;
