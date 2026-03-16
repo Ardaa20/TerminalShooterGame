@@ -20,7 +20,7 @@
 int main()
 {
   character player;
-  character enemy;
+  // player dir ile plane dir dik olucak ondan dirx 1 ise planex = 0 olacak, burdan sonra plane.y ye koyduğum değer benim fov-umu belirleyecek 1 olursa mesela 90 derece fov olur, 0.5 olursa 60 derece gibi gibi. Şuan fov 90.
   player.dir.x = DIRLENGTH;
   player.dir.y = 0;
   player.plane.x = 0;
@@ -39,6 +39,13 @@ int main()
   nodelay(stdscr, TRUE); // getch() fonksiyonu tuş beklemesin, oyunu dondurmasın
   keypad(stdscr, TRUE);  // Yön tuşları (oklar) çalışabilsin
   curs_set(0);           // Yanıp sönen terminal imlecini (cursor) gizle
+  start_color();         // Renk motorunu çalıştır!
+  // init_pair(Palet_No, Yazı_Rengi, Arka_Plan_Rengi);
+  init_pair(1, COLOR_RED, COLOR_BLACK);    // 1 Numaralı Palet: Kırmızı yazı, Siyah arka plan
+  init_pair(2, COLOR_GREEN, COLOR_BLACK);  // 2 Numaralı Palet: Yeşil yazı, Siyah arka plan
+  init_pair(3, COLOR_YELLOW, COLOR_BLACK); // 3 Numaralı Palet: Sarı yazı, Siyah arka plan
+  init_pair(4, COLOR_CYAN, COLOR_BLACK);   // 4 Numaralı Palet: Açık Mavi yazı, Siyah arka plan (Duvarlar için harika olur)
+
   mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
   printf("\033[?1003h\n");
   fflush(stdout);
@@ -88,7 +95,7 @@ int main()
       // Fare hareketlerini işlemek için
       if (key == KEY_MOUSE)
       {
-        MEVENT event;
+        MEVENT event; // Burdaki event ekrandaki farenin hangi pozisyonda olduğunu ve hangi tuşa basıldığını tutacak yapı
         if (getmouse(&event) == OK)
         {
           if (lastMouseX == -1)

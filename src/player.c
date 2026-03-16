@@ -33,10 +33,12 @@ void movePlayer(character *player, int key)
 
 void rotatePlayer(character *player, int deltaX)
 {
+    // Rotation matrix kullanarak oyuncunun yönünü ve kamera düzlemini döndürüyoruz
     double rotSpeed = deltaX * ROTSPEED;
     double oldDirX = player->dir.x;
     player->dir.x = player->dir.x * cos(rotSpeed) - player->dir.y * sin(rotSpeed);
     player->dir.y = oldDirX * sin(rotSpeed) + player->dir.y * cos(rotSpeed);
+
     double oldPlaneX = player->plane.x;
     player->plane.x = player->plane.x * cos(rotSpeed) - player->plane.y * sin(rotSpeed);
     player->plane.y = oldPlaneX * sin(rotSpeed) + player->plane.y * cos(rotSpeed);

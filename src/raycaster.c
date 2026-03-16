@@ -33,6 +33,7 @@ void renderFrame(character *player)
         double cameraX = 2 * x / (double)WIDTH - 1; // x-coordinate in camera space
         ray.rayDir.x = player->dir.x + player->plane.x * cameraX;
         ray.rayDir.y = player->dir.y + player->plane.y * cameraX;
+
         ray.mapX = (int)player->position.x;
         ray.mapY = (int)player->position.y;
         ray.deltaDist.x = (ray.rayDir.x == 0) ? 1e30 : fabs(1 / ray.rayDir.x);
@@ -63,11 +64,16 @@ void renderFrame(character *player)
 
         DDA(&ray);
 
+        // fish-eye etkisini önlemek için duvara olan gerçek uzaklığı hesapla
         if (ray.side == 0)
             ray.perpWallDist = (ray.sideDist.x - ray.deltaDist.x);
         else
             ray.perpWallDist = (ray.sideDist.y - ray.deltaDist.y);
 
+        ZBuffer[x] = ray.perpWallDist; // o sütun için duvara olan uzaklığı z-buffer'a kaydet
+
         printMap(ray.perpWallDist, ray.side, x);
     }
+
+    drawEnemys(player);
 }

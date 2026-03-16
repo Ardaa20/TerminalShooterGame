@@ -4,6 +4,7 @@
 #include "vector.h"
 #include "player.h"
 #include "map.h"
+#include "enemy.h"
 
 // Işın izleme değişkenlerini tutan yapı
 typedef struct
